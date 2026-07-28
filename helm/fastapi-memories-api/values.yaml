@@ -1,0 +1,62 @@
+# Default values for fastapi-memories-api chart.
+
+replicaCount: 1
+
+image:
+  repository: kasisubbarayudu/kashi-memories-api
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8000
+
+env:
+  cognitoBackend: "False"
+  accessTokenExpiry: "60"
+  cognitoRegion: "us-east-1"
+
+# Database Configuration
+postgres:
+  enabled: true
+  user: "postgres"
+  password: "postgres"
+  database: "fastapi"
+  storageSize: "5Gi"
+  port: 5432
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

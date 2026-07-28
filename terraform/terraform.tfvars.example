@@ -1,0 +1,9 @@
+aws_region          = "ap-south-1"
+cluster_name        = "fastapi-memories-eks"
+vpc_cidr            = "10.0.0.0/16"
+github_org          = "your-github-username"
+github_repo         = "fastapi-memories-api"
+node_instance_types = ["t3.medium"]
+desired_node_count  = 1
+min_node_count      = 1
+max_node_count      = 1

@@ -5,3 +5,6 @@ src/postgres-data.md
 src/testing.md
 .env
 intro_api_mimik_data.py
+__pycache__
+terraform.tfstate
+.terraform

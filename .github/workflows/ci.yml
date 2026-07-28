@@ -12,6 +12,7 @@ concurrency:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   # Run tests
@@ -110,3 +111,50 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Deploy Application to EKS via OIDC
+  # Note: Here terraform scripts are already configured to create an identity provider
+  # to allow gh actions to trust the tokens supplied to sts and allow it to assume role so it has access to eks.
+  # also remember an access entry is needed to allow gh actions to interact with the cluster.
+  # eks iam permissions just provides infra perm. to interact with cluster access entry must be added.
+  deploy-eks:
+    name: Deploy Application to EKS (Helm)
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # Role arn can be taken from the output of terraform apply and then configure in github secrets.
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION || 'ap-south-1' }}
+          audience: sts.amazonaws.com
+
+      - name: Update Kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ secrets.EKS_CLUSTER_NAME || 'fastapi-memories-eks' }} \
+            --region ${{ secrets.AWS_REGION || 'ap-south-1' }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Deploy FastAPI App using Helm
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          helm upgrade --install fastapi-memories-api ./helm/fastapi-memories-api \
+            --namespace default \
+            --set image.repository=${{ secrets.DOCKER_USERNAME }}/kashi-memories-api \
+            --set image.tag="sha-${SHORT_SHA}" \
+            --set env.cognitoBackend="False" \
+            --wait --timeout 5m0s
+
+
+
